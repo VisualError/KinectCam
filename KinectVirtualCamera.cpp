@@ -4,7 +4,6 @@
 #include <dvdmedia.h>
 #include "KinectVirtualCamera.h"
 
-bool flipImage = true;
 CUnknown* WINAPI CKinectVirtualSource::CreateInstance(LPUNKNOWN pUnk, HRESULT* phr) {
     ASSERT(phr);
     CUnknown* punk = new CKinectVirtualSource(pUnk, phr);
@@ -85,10 +84,10 @@ HRESULT CKinectVirtualStream::OnThreadCreate()
 
 HRESULT CKinectVirtualStream::OnThreadDestroy()
 {
-    /*if (m_pParent->m_kinected) {
-        m_pParent->m_kinectInfraredCam.Nui_UnInit();
+    if (m_pParent->m_kinected) {
         m_pParent->m_kinected = false;
-    }*/
+        m_pParent->m_kinectInfraredCam.Nui_UnInit();
+    }
     return CSourceStream::OnThreadDestroy();
 } // OnThreadDestroy
 
@@ -152,7 +151,7 @@ HRESULT CKinectVirtualStream::CheckMediaType(const CMediaType* pMediaType)
     if (*pMediaType != m_mt)
         return E_INVALIDARG;
 
-    VIDEOINFOHEADER* pVih = (VIDEOINFOHEADER*)pMediaType->Format();
+    DECLARE_PTR(VIDEOINFOHEADER, pVih, pMediaType->Format());
     if (pVih->bmiHeader.biCompression != MAKEFOURCC('N', 'V', '1', '2') ||
         pVih->bmiHeader.biWidth != 640 ||
         pVih->bmiHeader.biHeight != 480)
@@ -161,87 +160,6 @@ HRESULT CKinectVirtualStream::CheckMediaType(const CMediaType* pMediaType)
     }
 
     return S_OK;
-
-
-    //// Check if the major type is video
-    //if (pMediaType->majortype != MEDIATYPE_Video)
-    //{
-    //    printf("CheckMediaType: Major type is not MEDIATYPE_Video.\n");
-    //    return E_INVALIDARG;
-    //}
-
-    ////// Check if the subtype is our preferred L8/Y800
-    ////// Note: Some renderers might propose other subtypes. You could add logic
-    ////// here to handle conversions if needed, but for simplicity, we'll only
-    ////// accept our preferred format.
-    ////if (pMediaType->subtype != MEDIASUBTYPE_L8 &&
-    ////    pMediaType->GetSubtype() != MEDIASUBTYPE_Y)
-    ////{
-    ////    printf("CheckMediaType: Subtype is not MEDIASUBTYPE_L8 or MEDIASUBTYPE_Y800.\n");
-    ////    return E_INVALIDARG;
-    ////}
-
-    //// Check if the format type is VIDEOINFOHEADER
-    //if (pMediaType->formattype != FORMAT_VideoInfo)
-    //{
-    //    printf("CheckMediaType: Format type is not FORMAT_VideoInfo.\n");
-    //    return E_INVALIDARG;
-    //}
-
-    //// Check format details
-    //VIDEOINFOHEADER* pVih = (VIDEOINFOHEADER*)pMediaType->Format();
-    //if (pVih == NULL)
-    //{
-    //    printf("CheckMediaType: VIDEOINFOHEADER is NULL.\n");
-    //    return E_INVALIDARG;
-    //}
-
-    //// Check dimensions and bit depth
-    //long bytesPerPixel = 1; //pKinectInfraredCam->GetBytesPerPixel(); // Expected output bytes per pixel
-    //long expectedWidth = 640;
-    //long expectedHeight = 480;
-    //if (expectedWidth <= 0 || expectedHeight <= 0 || bytesPerPixel <= 0) {
-    //    printf("CheckMediaType: Kinect dimensions/pixel size invalid.\n");
-    //    return E_UNEXPECTED; // Kinect helper not ready or invalid dimensions
-    //}
-
-    //// Check if dimensions match our expected output dimensions
-    //if (pVih->bmiHeader.biWidth != expectedWidth || abs(pVih->bmiHeader.biHeight) != expectedHeight) // Use abs() for height as it can be negative
-    //{
-    //    printf("CheckMediaType: Dimensions do not match. Expected %dx%d, Got %dx%d.\n",
-    //        expectedWidth, expectedHeight, pVih->bmiHeader.biWidth, abs(pVih->bmiHeader.biHeight));
-    //    return E_INVALIDARG;
-    //}
-
-    //// Check bits per pixel (should be 8 for L8/Y800)
-    //if (pVih->bmiHeader.biBitCount != (WORD)(bytesPerPixel * 8))
-    //{
-    //    printf("CheckMediaType: Bit depth does not match. Expected %d, Got %d.\n", bytesPerPixel * 8, pVih->bmiHeader.biBitCount);
-    //    return E_INVALIDARG;
-    //}
-
-    //// Check image size (should match width * height * bytesPerPixel)
-    //long expectedImageSize = expectedWidth * expectedHeight * bytesPerPixel; // Use actual dimensions and bytesperpixel
-    //if (pVih->bmiHeader.biSizeImage != expectedImageSize)
-    //{
-    //    // Some applications might set biSizeImage to 0 for uncompressed formats,
-    //    // but it's safer to check against the calculated size.
-    //    if (pVih->bmiHeader.biSizeImage != 0) {
-    //        printf("CheckMediaType: Image size does not match. Expected %ld, Got %ld.\n", expectedImageSize, pVih->bmiHeader.biSizeImage);
-    //        // return E_INVALIDARG; // Be strict or lenient here
-    //    }
-    //}
-
-    //// Check Compression (should be BI_RGB or 0 for L8/Y800)
-    //if (pVih->bmiHeader.biCompression != BI_RGB && pVih->bmiHeader.biCompression != 0)
-    //{
-    //    printf("CheckMediaType: Compression not BI_RGB or 0.\n");
-    //    return E_INVALIDARG;
-    //}
-
-
-    //printf("CheckMediaType: Media type accepted.\n");
-    //return S_OK; // Media type is acceptable
 }
 
 HRESULT CKinectVirtualStream::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pRequest)
@@ -249,7 +167,8 @@ HRESULT CKinectVirtualStream::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_
     CAutoLock cAutoLock(m_pFilter->pStateLock());
     HRESULT hr = NOERROR;
 
-    VIDEOINFOHEADER* pvi = (VIDEOINFOHEADER*)m_mt.Format();
+    /*VIDEOINFOHEADER* pvi = (VIDEOINFOHEADER*)m_mt.Format();*/
+    DECLARE_PTR(VIDEOINFOHEADER, pvi, m_mt.Format());
     pRequest->cBuffers = 1;
     pRequest->cbBuffer = pvi->bmiHeader.biSizeImage;
 
@@ -305,55 +224,8 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
 
             pSrc += 640; // Advance to next row
         }
-        // Ultra-optimized linear path (no flip) ----------------------------
-        //const USHORT* pSrcEnd = pSrc + (640 * 480);
-        //BYTE* pY = yPlane;
-
-        //// Process 8 pixels per iteration (loop unrolling)
-        //while (pSrc < pSrcEnd - 16)
-        //{
-        //    pY[0] = static_cast<BYTE>((pSrc[0] >> 8));
-        //    pY[1] = static_cast<BYTE>((pSrc[1] >> 8));
-        //    pY[2] = static_cast<BYTE>((pSrc[2] >> 8));
-        //    pY[3] = static_cast<BYTE>((pSrc[3] >> 8));
-        //    pY[4] = static_cast<BYTE>((pSrc[4] >> 8));
-        //    pY[5] = static_cast<BYTE>((pSrc[5] >> 8));
-        //    pY[6] = static_cast<BYTE>((pSrc[6] >> 8));
-        //    pY[7] = static_cast<BYTE>((pSrc[7] >> 8));
-        //    pY[8] = static_cast<BYTE>((pSrc[8] >> 8));
-        //    pY[9] = static_cast<BYTE>((pSrc[9] >> 8));
-        //    pY[10] = static_cast<BYTE>((pSrc[10] >> 8));
-        //    pY[11] = static_cast<BYTE>((pSrc[11] >> 8));
-        //    pY[12] = static_cast<BYTE>((pSrc[12] >> 8));
-        //    pY[13] = static_cast<BYTE>((pSrc[13] >> 8));
-        //    pY[14] = static_cast<BYTE>((pSrc[14] >> 8));
-        //    pY[15] = static_cast<BYTE>((pSrc[15] >> 8));
-
-        //    pSrc += 16;
-        //    pY += 16;
-        //}
-
-        //// Handle remaining pixels (1-15)
-        //while (pSrc < pSrcEnd)
-        //{
-        //    *pY++ = static_cast<BYTE>((*pSrc++ >> 8));
-        //}
 
         memset(uvPlane, 128, 640 * 480 / 2);
-
-        //for (int y = 0; y < 480; ++y)
-        //{
-        //    for (int x = 0; x < 640; ++x)
-        //    {
-        //        int srcX = flipImage ? (639 - x) : x;
-        //        int srcIndex = y * 640 + srcX;
-        //        yPlane[y * 640 + x] = static_cast<BYTE>((pSrc[srcIndex] >> 8) & 0xFF);
-        //    }
-        //}
-
-        //// Fill UV Plane (640x480/2 = 153600 bytes, all 128 for grayscale)
-        //BYTE* uvPlane = pData + (640 * 480);
-        //memset(uvPlane, 128, 640 * 480 / 2);
     }
     else
     {
@@ -362,106 +234,7 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
         memset(pData + 640 * 480, 128, 640 * 480 / 2); // Neutral UV
     }
 
-    //pSample->GetPointer(&pData);
-    //lDataLen = pSample->GetSize();
-    //if (m_pParent->m_kinected)
-    //{
-    //    m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
-    //    USHORT* pSrc = reinterpret_cast<USHORT*>(m_pParent->m_pBuffer);
-    //    int destPos = 0;
-
-    //    for (int y = 0; y < 480; y++)
-    //    {
-    //        //int srcY = g_flipImage ? y : (479 - y); // Flip vertically if needed
-    //        int srcY = 479 - y; // Now the image is upright by default
-    //        for (int x = 0; x < 640; x++)
-    //        {
-    //            int srcX = flipImage ? (639 - x) : x;
-    //            int srcIndex = srcY * 640 + srcX;
-    //            BYTE intensity = static_cast<BYTE>((pSrc[srcIndex] >> 8) & 0xFF);
-    //            pData[destPos++] = intensity; // Red
-    //            pData[destPos++] = intensity; // Green
-    //            pData[destPos++] = intensity; // Blue
-    //        }
-    //    }
-    //}
-    //else
-    //{
-    //    // Fill with random data if Kinect isn't connected
-    //    for (int i = 0; i < lDataLen; ++i)
-    //        pData[i] = rand();
-    //}
-
-
-    /*for (int i = 0; i < lDataLen; ++i)
-        pData[i] = rand();*/
-
     return NOERROR;
-
-    // printf("CKinectVirtualStream::FillBuffer()\n"); // Avoid excessive output
-
-    //HRESULT hr;
-    //BYTE* pBuffer = NULL;
-    //long lBufferSize = 0;
-
-    //// Get the sample buffer pointer and size
-    //hr = pSample->GetPointer(&pBuffer);
-    //if (FAILED(hr))
-    //{
-    //    printf("FillBuffer: Failed to get sample buffer pointer: 0x%lX\n", hr);
-    //    return hr;
-    //}
-
-    //lBufferSize = pSample->GetSize();
-
-    //// --- Get the latest frame from the Kinect helper ---
-    //long lActualDataLength = 0;
-
-    //if (FAILED(hr))
-    //{
-    //    // Handle errors from Kinect acquisition (e.g., device disconnected, frame not available)
-    //    printf("FillBuffer: Failed to get Kinect frame: 0x%lX\n", hr);
-    //    // Depending on the error, you might return the error code,
-    //    // or S_FALSE to indicate no frame was ready this time, or sleep.
-    //    // If the device is disconnected, returning the error might stop the graph.
-    //    // Returning S_FALSE is often used if the source is not always producing frames.
-    //    return S_FALSE; // Indicate no data was available for this sample time
-    //}
-
-    //// Set the actual data length of the sample
-    //pSample->SetActualDataLength(lActualDataLength);
-
-    //// Set timestamps on the sample
-    //// CSourceStream handles pushing the sample downstream and managing the stream thread.
-    //// We need to set the timestamps for this sample.
-    //// The base class's m_rtStreamTime tracks the current stream time.
-    //// We can use m_rtLastSampleTime to ensure monotonic timestamps.
-
-    //// Get the current stream time (relative to graph start)
-    //// CSourceStream::GetStreamTime(&m_rtLastSampleTime); // This gets the current time
-
-    //// Calculate the sample start and end times based on frame rate
-    //// The first sample starts at 0. Subsequent samples are spaced by m_rtFrameLength.
-    //CRefTime rtStart = m_rtLastSampleTime;
-    //CRefTime rtStop = rtStart + m_rtFrameLength;
-
-    //hr = pSample->SetTime(&rtStart, &rtStop);
-    //if (FAILED(hr))
-    //{
-    //    printf("FillBuffer: Failed to set sample time: 0x%lX\n", hr);
-    //    // This is a less critical error than failing to get data, but still an issue.
-    //    // The graph might still run, but timing will be off.
-    //}
-
-    //// Update the last sample time for the next frame
-    //m_rtLastSampleTime = rtStop;
-
-
-    //// If you need to set media type dynamically per sample (rare for sources), do it here:
-    //// pSample->SetMediaType(&m_mt); // m_mt is the negotiated connected media type
-
-    //// printf("FillBuffer: Sample filled and timed.\n");
-    //return S_OK; // Successfully filled the buffer
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -555,71 +328,6 @@ HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetStreamCaps(int iIndex, AM_MED
     pvscc->MaxBitsPerSecond = 640 * 480 * 16 * 30;
 
     return S_OK;
-    //*pmt = CreateMediaType(&m_mt);
-    //DECLARE_PTR(VIDEOINFOHEADER, pvi, (*pmt)->pbFormat);
-
-    ////    if (iIndex == 0) iIndex = 4;
-    //if (iIndex == 0) iIndex = 8;
-
-    ////pVih->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    ////pVih->bmiHeader.biWidth = 640; //m_lVideoWidth;
-    ////pVih->bmiHeader.biHeight = 480;//m_lVideoHeight; // Height is positive for uncompressed bottom-up DIBs, negative for top-down. DirectShow often uses bottom-up.
-    ////pVih->bmiHeader.biPlanes = 1;
-    ////pVih->bmiHeader.biBitCount = 16; // 8 bits per pixel for L8
-    ////pVih->bmiHeader.biCompression = BI_RGB; // BI_RGB with 8bpp implies L8
-    ////pVih->bmiHeader.biSizeImage = GetBitmapSize(&pVih->bmiHeader);
-
-    //pvi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    //pvi->bmiHeader.biWidth = 640;
-    //pvi->bmiHeader.biHeight = 480;
-    //pvi->bmiHeader.biPlanes = 1;
-    //pvi->bmiHeader.biBitCount = 24;
-    //pvi->bmiHeader.biCompression = BI_RGB;
-    //pvi->bmiHeader.biSizeImage = GetBitmapSize(&pvi->bmiHeader);
-    //pvi->bmiHeader.biClrImportant = 0;
-
-    //SetRectEmpty(&(pvi->rcSource)); // we want the whole image area rendered.
-    //SetRectEmpty(&(pvi->rcTarget)); // no particular destination rectangle
-
-    //(*pmt)->majortype = MEDIATYPE_Video;
-    //(*pmt)->subtype = MEDIASUBTYPE_RGB24;
-    //(*pmt)->formattype = FORMAT_VideoInfo;
-    //(*pmt)->bTemporalCompression = FALSE;
-    //(*pmt)->bFixedSizeSamples = FALSE;
-    //(*pmt)->lSampleSize = pvi->bmiHeader.biSizeImage;
-    //(*pmt)->cbFormat = sizeof(VIDEOINFOHEADER);
-
-    //DECLARE_PTR(VIDEO_STREAM_CONFIG_CAPS, pvscc, pSCC);
-
-    //pvscc->guid = FORMAT_VideoInfo;
-    //pvscc->VideoStandard = AnalogVideo_None;
-    //pvscc->InputSize.cx = 640;
-    //pvscc->InputSize.cy = 480;
-    //pvscc->MinCroppingSize.cx = 640;
-    //pvscc->MinCroppingSize.cy = 480;
-    //pvscc->MaxCroppingSize.cx = 640;
-    //pvscc->MaxCroppingSize.cy = 480;
-    //pvscc->CropGranularityX = 640;
-    //pvscc->CropGranularityY = 480;
-    //pvscc->CropAlignX = 0;
-    //pvscc->CropAlignY = 0;
-
-    //pvscc->MinOutputSize.cx = 640;
-    //pvscc->MinOutputSize.cy = 480;
-    //pvscc->MaxOutputSize.cx = 640;
-    //pvscc->MaxOutputSize.cy = 480;
-    //pvscc->OutputGranularityX = 0;
-    //pvscc->OutputGranularityY = 0;
-    //pvscc->StretchTapsX = 0;
-    //pvscc->StretchTapsY = 0;
-    //pvscc->ShrinkTapsX = 0;
-    //pvscc->ShrinkTapsY = 0;
-    //pvscc->MinFrameInterval = 333333;
-    //pvscc->MaxFrameInterval = 333333;
-    //pvscc->MinBitsPerSecond = 640 * 480 * 16 * 30;
-    //pvscc->MaxBitsPerSecond = 640 * 480 * 16 * 30;
-
-    //return S_OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
