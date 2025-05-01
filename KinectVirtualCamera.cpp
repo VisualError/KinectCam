@@ -85,10 +85,10 @@ HRESULT CKinectVirtualStream::OnThreadCreate()
 
 HRESULT CKinectVirtualStream::OnThreadDestroy()
 {
-    /*if (m_pParent->m_kinected) {
+    if (m_pParent->m_kinected) {
         m_pParent->m_kinectInfraredCam.Nui_UnInit();
         m_pParent->m_kinected = false;
-    }*/
+    }
     return CSourceStream::OnThreadDestroy();
 } // OnThreadDestroy
 
