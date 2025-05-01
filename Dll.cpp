@@ -6,7 +6,6 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <streams.h>
-#include <olectl.h>
 #include <initguid.h>
 #include <dllsetup.h>
 #include "KinectVirtualCamera.h"
