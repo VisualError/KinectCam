@@ -118,13 +118,13 @@ HRESULT CKinectVirtualStream::GetMediaType(int iPosition, CMediaType* pmt)
     DECLARE_PTR(VIDEOINFOHEADER, pvi, pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER)));
     ZeroMemory(pvi, sizeof(VIDEOINFOHEADER));
 
-    pvi->bmiHeader.biCompression = MAKEFOURCC('N', 'V', '1', '2');;
-    pvi->bmiHeader.biBitCount = 12;
+    pvi->bmiHeader.biCompression = BI_RGB;
+    pvi->bmiHeader.biBitCount = 24;
     pvi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     pvi->bmiHeader.biWidth = 640;
     pvi->bmiHeader.biHeight = 480;
     pvi->bmiHeader.biPlanes = 1;
-    pvi->bmiHeader.biSizeImage = 640 * 480 * 3 / 2; //GetBitmapSize(&pvi->bmiHeader);
+    pvi->bmiHeader.biSizeImage = GetBitmapSize(&pvi->bmiHeader);
     pvi->bmiHeader.biClrImportant = 0;
 
     pvi->AvgTimePerFrame = 10000000 / 30;
@@ -151,17 +151,7 @@ HRESULT CKinectVirtualStream::CheckMediaType(const CMediaType* pMediaType)
 
     if (*pMediaType != m_mt)
         return E_INVALIDARG;
-
-    VIDEOINFOHEADER* pVih = (VIDEOINFOHEADER*)pMediaType->Format();
-    if (pVih->bmiHeader.biCompression != MAKEFOURCC('N', 'V', '1', '2') ||
-        pVih->bmiHeader.biWidth != 640 ||
-        pVih->bmiHeader.biHeight != 480)
-    {
-        return E_INVALIDARG;
-    }
-
     return S_OK;
-
 
     //// Check if the major type is video
     //if (pMediaType->majortype != MEDIATYPE_Video)
@@ -277,120 +267,35 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
 
     BYTE* pData;
     long lDataLen;
-
     pSample->GetPointer(&pData);
     lDataLen = pSample->GetSize();
-
     if (m_pParent->m_kinected)
     {
         m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
         USHORT* pSrc = reinterpret_cast<USHORT*>(m_pParent->m_pBuffer);
+        int destPos = 0;
 
-        // Fill Y Plane (640x480)
-        BYTE* yPlane = pData;
-        BYTE* uvPlane = pData + (640 * 480);
-        const USHORT* pSrcEnd = pSrc + (640 * 480);
-        BYTE* pY = yPlane;
-
-        while (pSrc < pSrcEnd)
+        for (int y = 0; y < 480; y++)
         {
-            // Process one full row at a time (X flipped)
-            const USHORT* pRowStart = pSrc + 639; // Start from last pixel of row
-            const USHORT* pRowEnd = pSrc;         // End at first pixel
-
-            while (pRowStart >= pRowEnd)
+            //int srcY = g_flipImage ? y : (479 - y); // Flip vertically if needed
+            int srcY = 479 - y; // Now the image is upright by default
+            for (int x = 0; x < 640; x++)
             {
-                *pY++ = static_cast<BYTE>((*pRowStart-- >> 8));
+                int srcX = flipImage ? (639 - x) : x;
+                int srcIndex = srcY * 640 + srcX;
+                BYTE intensity = static_cast<BYTE>((pSrc[srcIndex] >> 8) & 0xFF);
+                pData[destPos++] = intensity; // Red
+                pData[destPos++] = intensity; // Green
+                pData[destPos++] = intensity; // Blue
             }
-
-            pSrc += 640; // Advance to next row
         }
-        // Ultra-optimized linear path (no flip) ----------------------------
-        //const USHORT* pSrcEnd = pSrc + (640 * 480);
-        //BYTE* pY = yPlane;
-
-        //// Process 8 pixels per iteration (loop unrolling)
-        //while (pSrc < pSrcEnd - 16)
-        //{
-        //    pY[0] = static_cast<BYTE>((pSrc[0] >> 8));
-        //    pY[1] = static_cast<BYTE>((pSrc[1] >> 8));
-        //    pY[2] = static_cast<BYTE>((pSrc[2] >> 8));
-        //    pY[3] = static_cast<BYTE>((pSrc[3] >> 8));
-        //    pY[4] = static_cast<BYTE>((pSrc[4] >> 8));
-        //    pY[5] = static_cast<BYTE>((pSrc[5] >> 8));
-        //    pY[6] = static_cast<BYTE>((pSrc[6] >> 8));
-        //    pY[7] = static_cast<BYTE>((pSrc[7] >> 8));
-        //    pY[8] = static_cast<BYTE>((pSrc[8] >> 8));
-        //    pY[9] = static_cast<BYTE>((pSrc[9] >> 8));
-        //    pY[10] = static_cast<BYTE>((pSrc[10] >> 8));
-        //    pY[11] = static_cast<BYTE>((pSrc[11] >> 8));
-        //    pY[12] = static_cast<BYTE>((pSrc[12] >> 8));
-        //    pY[13] = static_cast<BYTE>((pSrc[13] >> 8));
-        //    pY[14] = static_cast<BYTE>((pSrc[14] >> 8));
-        //    pY[15] = static_cast<BYTE>((pSrc[15] >> 8));
-
-        //    pSrc += 16;
-        //    pY += 16;
-        //}
-
-        //// Handle remaining pixels (1-15)
-        //while (pSrc < pSrcEnd)
-        //{
-        //    *pY++ = static_cast<BYTE>((*pSrc++ >> 8));
-        //}
-
-        memset(uvPlane, 128, 640 * 480 / 2);
-
-        //for (int y = 0; y < 480; ++y)
-        //{
-        //    for (int x = 0; x < 640; ++x)
-        //    {
-        //        int srcX = flipImage ? (639 - x) : x;
-        //        int srcIndex = y * 640 + srcX;
-        //        yPlane[y * 640 + x] = static_cast<BYTE>((pSrc[srcIndex] >> 8) & 0xFF);
-        //    }
-        //}
-
-        //// Fill UV Plane (640x480/2 = 153600 bytes, all 128 for grayscale)
-        //BYTE* uvPlane = pData + (640 * 480);
-        //memset(uvPlane, 128, 640 * 480 / 2);
     }
     else
     {
-        // Fallback: Fill with black NV12 (Y=0, UV=128)
-        memset(pData, 0, 640 * 480);        // Black Y plane
-        memset(pData + 640 * 480, 128, 640 * 480 / 2); // Neutral UV
+        // Fill with random data if Kinect isn't connected
+        for (int i = 0; i < lDataLen; ++i)
+            pData[i] = rand();
     }
-
-    //pSample->GetPointer(&pData);
-    //lDataLen = pSample->GetSize();
-    //if (m_pParent->m_kinected)
-    //{
-    //    m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
-    //    USHORT* pSrc = reinterpret_cast<USHORT*>(m_pParent->m_pBuffer);
-    //    int destPos = 0;
-
-    //    for (int y = 0; y < 480; y++)
-    //    {
-    //        //int srcY = g_flipImage ? y : (479 - y); // Flip vertically if needed
-    //        int srcY = 479 - y; // Now the image is upright by default
-    //        for (int x = 0; x < 640; x++)
-    //        {
-    //            int srcX = flipImage ? (639 - x) : x;
-    //            int srcIndex = srcY * 640 + srcX;
-    //            BYTE intensity = static_cast<BYTE>((pSrc[srcIndex] >> 8) & 0xFF);
-    //            pData[destPos++] = intensity; // Red
-    //            pData[destPos++] = intensity; // Green
-    //            pData[destPos++] = intensity; // Blue
-    //        }
-    //    }
-    //}
-    //else
-    //{
-    //    // Fill with random data if Kinect isn't connected
-    //    for (int i = 0; i < lDataLen; ++i)
-    //        pData[i] = rand();
-    //}
 
 
     /*for (int i = 0; i < lDataLen; ++i)
@@ -504,20 +409,20 @@ HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetStreamCaps(int iIndex, AM_MED
     //    if (iIndex == 0) iIndex = 4;
     if (iIndex == 0) iIndex = 8;
 
-    pvi->bmiHeader.biCompression = MAKEFOURCC('N', 'V', '1', '2');;
-    pvi->bmiHeader.biBitCount = 12;
+    pvi->bmiHeader.biCompression = BI_RGB;
+    pvi->bmiHeader.biBitCount = 24;
     pvi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     pvi->bmiHeader.biWidth = 640;
     pvi->bmiHeader.biHeight = 480;
     pvi->bmiHeader.biPlanes = 1;
-    pvi->bmiHeader.biSizeImage = 640 * 480 * 3 / 2; //GetBitmapSize(&pvi->bmiHeader);
+    pvi->bmiHeader.biSizeImage = GetBitmapSize(&pvi->bmiHeader);
     pvi->bmiHeader.biClrImportant = 0;
 
     SetRectEmpty(&(pvi->rcSource)); // we want the whole image area rendered.
     SetRectEmpty(&(pvi->rcTarget)); // no particular destination rectangle
 
     (*pmt)->majortype = MEDIATYPE_Video;
-    (*pmt)->subtype = MEDIASUBTYPE_NV12;
+    (*pmt)->subtype = MEDIASUBTYPE_RGB24;
     (*pmt)->formattype = FORMAT_VideoInfo;
     (*pmt)->bTemporalCompression = FALSE;
     (*pmt)->bFixedSizeSamples = FALSE;
