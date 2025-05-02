@@ -54,7 +54,7 @@ CKinectVirtualStream::CKinectVirtualStream(HRESULT* phr, CKinectVirtualSource* p
     : CSourceStream(NAME("Kinect Cam"), phr, pParent, pPinName),
     m_pParent(pParent)
 {
-    GetMediaType(8,&m_mt);
+    GetMediaType(0,&m_mt);
     //DbgLog((LOG_TRACE, 3, TEXT("CKinectVirtualStream::CKinectVirtualStream")));
 }
 
@@ -106,15 +106,16 @@ HRESULT CKinectVirtualStream::SetMediaType(const CMediaType* pmt)
 HRESULT CKinectVirtualStream::GetMediaType(int iPosition, CMediaType* pmt)
 {
     if (iPosition < 0) return E_INVALIDARG;
-    if (iPosition > 8) return VFW_S_NO_MORE_ITEMS;
-
-    if (iPosition == 0)
+    if (iPosition > 0) return VFW_S_NO_MORE_ITEMS;
+    if (pmt == NULL) return E_POINTER;
+    /*if (iPosition == 0)
     {
         *pmt = m_mt;
         return S_OK;
-    }
+    }*/
 
     DECLARE_PTR(VIDEOINFOHEADER, pvi, pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER)));
+    if (pvi == NULL) return E_OUTOFMEMORY;
     ZeroMemory(pvi, sizeof(VIDEOINFOHEADER));
 
     pvi->bmiHeader.biCompression = MAKEFOURCC('N', 'V', '1', '2');;
@@ -134,13 +135,16 @@ HRESULT CKinectVirtualStream::GetMediaType(int iPosition, CMediaType* pmt)
     pmt->SetType(&MEDIATYPE_Video);
     pmt->SetFormatType(&FORMAT_VideoInfo);
     pmt->SetTemporalCompression(FALSE);
-
-    // Work out the GUID for the subtype from the header info.
-    const GUID SubTypeGUID = GetBitmapSubtype(&pvi->bmiHeader);
-    pmt->SetSubtype(&SubTypeGUID);
+    pmt->SetSubtype(&MEDIASUBTYPE_NV12);
     pmt->SetSampleSize(pvi->bmiHeader.biSizeImage);
 
-    return NOERROR;
+    m_mt = *pmt;
+    //// Work out the GUID for the subtype from the header info.
+    //const GUID SubTypeGUID = GetBitmapSubtype(&pvi->bmiHeader);
+    //pmt->SetSubtype(&SubTypeGUID);
+    //pmt->SetSampleSize(pvi->bmiHeader.biSizeImage);
+
+    return S_OK;
 
 } // GetMediaType
 
@@ -264,30 +268,33 @@ HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetFormat(AM_MEDIA_TYPE** ppmt)
 
 HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetNumberOfCapabilities(int* piCount, int* piSize)
 {
-    *piCount = 8;
+    *piCount = 1;
     *piSize = sizeof(VIDEO_STREAM_CONFIG_CAPS);
     return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetStreamCaps(int iIndex, AM_MEDIA_TYPE** pmt, BYTE* pSCC)
 {
+    if (iIndex < 0 || iIndex > 0) return VFW_S_NO_MORE_ITEMS;
+    if (pmt == NULL || pSCC == NULL) return E_POINTER;
     *pmt = CreateMediaType(&m_mt);
+    if (*pmt == NULL) return E_OUTOFMEMORY;
     DECLARE_PTR(VIDEOINFOHEADER, pvi, (*pmt)->pbFormat);
 
     //    if (iIndex == 0) iIndex = 4;
-    if (iIndex == 0) iIndex = 8;
+    /*if (iIndex == 0) iIndex = 8;*/
 
-    pvi->bmiHeader.biCompression = MAKEFOURCC('N', 'V', '1', '2');;
-    pvi->bmiHeader.biBitCount = 12;
-    pvi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    pvi->bmiHeader.biWidth = 640;
-    pvi->bmiHeader.biHeight = 480;
-    pvi->bmiHeader.biPlanes = 1;
-    pvi->bmiHeader.biSizeImage = 640 * 480 * 3 / 2; //GetBitmapSize(&pvi->bmiHeader);
-    pvi->bmiHeader.biClrImportant = 0;
+    //pvi->bmiHeader.biCompression = MAKEFOURCC('N', 'V', '1', '2');;
+    //pvi->bmiHeader.biBitCount = 12;
+    //pvi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    //pvi->bmiHeader.biWidth = 640;
+    //pvi->bmiHeader.biHeight = 480;
+    //pvi->bmiHeader.biPlanes = 1;
+    //pvi->bmiHeader.biSizeImage = 640 * 480 * 3 / 2; //GetBitmapSize(&pvi->bmiHeader);
+    //pvi->bmiHeader.biClrImportant = 0;
 
-    SetRectEmpty(&(pvi->rcSource)); // we want the whole image area rendered.
-    SetRectEmpty(&(pvi->rcTarget)); // no particular destination rectangle
+    //SetRectEmpty(&(pvi->rcSource)); // we want the whole image area rendered.
+    //SetRectEmpty(&(pvi->rcTarget)); // no particular destination rectangle
 
     (*pmt)->majortype = MEDIATYPE_Video;
     (*pmt)->subtype = MEDIASUBTYPE_NV12;
@@ -307,8 +314,8 @@ HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetStreamCaps(int iIndex, AM_MED
     pvscc->MinCroppingSize.cy = 480;
     pvscc->MaxCroppingSize.cx = 640;
     pvscc->MaxCroppingSize.cy = 480;
-    pvscc->CropGranularityX = 640;
-    pvscc->CropGranularityY = 480;
+    pvscc->CropGranularityX = 0;
+    pvscc->CropGranularityY = 0;
     pvscc->CropAlignX = 0;
     pvscc->CropAlignY = 0;
 
@@ -324,8 +331,8 @@ HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetStreamCaps(int iIndex, AM_MED
     pvscc->ShrinkTapsY = 0;
     pvscc->MinFrameInterval = 333333;
     pvscc->MaxFrameInterval = 333333;
-    pvscc->MinBitsPerSecond = 640 * 480 * 16 * 30;
-    pvscc->MaxBitsPerSecond = 640 * 480 * 16 * 30;
+    pvscc->MinBitsPerSecond = 640 * 480 * 12 * 30;
+    pvscc->MaxBitsPerSecond = 640 * 480 * 12 * 30;
 
     return S_OK;
 }
