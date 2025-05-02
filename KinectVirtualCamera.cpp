@@ -269,100 +269,37 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
     {
         m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
         USHORT* pSrc = reinterpret_cast<USHORT*>(m_pParent->m_pBuffer);
-        int destPos = 0;
+        const USHORT* pSrcEnd = pSrc + (640 * 480) - 1;
 
-        for (int y = 0; y < 480; y++)
-        {
-            //int srcY = g_flipImage ? y : (479 - y); // Flip vertically if needed
-            int srcY = 479 - y; // Now the image is upright by default
-            for (int x = 0; x < 640; x++)
-            {
-                int srcX = flipImage ? (639 - x) : x;
-                int srcIndex = srcY * 640 + srcX;
-                BYTE intensity = static_cast<BYTE>((pSrc[srcIndex] >> 8) & 0xFF);
-                pData[destPos++] = intensity; // Red
-                pData[destPos++] = intensity; // Green
-                pData[destPos++] = intensity; // Blue
-            }
+        for (int i = 0; i < 640 * 480; ++i) {
+            BYTE intensity = static_cast<BYTE>((*(pSrcEnd - i)) >> 8);
+            *pData++ = intensity;
+            *pData++ = intensity;
+            *pData++ = intensity;
         }
+        //for (int y = 0; y < 480; y++)
+        //{
+        //    //int srcY = g_flipImage ? y : (479 - y); // Flip vertically if needed
+        //    int srcY = 479 - y; // Now the image is upright by default
+        //    for (int x = 0; x < 640; x++)
+        //    {
+        //        int srcX = flipImage ? (639 - x) : x;
+        //        int srcIndex = srcY * 640 + srcX;
+        //        BYTE intensity = static_cast<BYTE>((pSrc[srcIndex] >> 8));
+        //        pData[destPos++] = intensity; // Red
+        //        pData[destPos++] = intensity; // Green
+        //        pData[destPos++] = intensity; // Blue
+        //    }
+        //}
     }
     else
     {
         // Fill with random data if Kinect isn't connected
         for (int i = 0; i < lDataLen; ++i)
-            pData[i] = rand();
+            *pData++ = rand();
     }
 
-
-    /*for (int i = 0; i < lDataLen; ++i)
-        pData[i] = rand();*/
-
     return NOERROR;
-
-    // printf("CKinectVirtualStream::FillBuffer()\n"); // Avoid excessive output
-
-    //HRESULT hr;
-    //BYTE* pBuffer = NULL;
-    //long lBufferSize = 0;
-
-    //// Get the sample buffer pointer and size
-    //hr = pSample->GetPointer(&pBuffer);
-    //if (FAILED(hr))
-    //{
-    //    printf("FillBuffer: Failed to get sample buffer pointer: 0x%lX\n", hr);
-    //    return hr;
-    //}
-
-    //lBufferSize = pSample->GetSize();
-
-    //// --- Get the latest frame from the Kinect helper ---
-    //long lActualDataLength = 0;
-
-    //if (FAILED(hr))
-    //{
-    //    // Handle errors from Kinect acquisition (e.g., device disconnected, frame not available)
-    //    printf("FillBuffer: Failed to get Kinect frame: 0x%lX\n", hr);
-    //    // Depending on the error, you might return the error code,
-    //    // or S_FALSE to indicate no frame was ready this time, or sleep.
-    //    // If the device is disconnected, returning the error might stop the graph.
-    //    // Returning S_FALSE is often used if the source is not always producing frames.
-    //    return S_FALSE; // Indicate no data was available for this sample time
-    //}
-
-    //// Set the actual data length of the sample
-    //pSample->SetActualDataLength(lActualDataLength);
-
-    //// Set timestamps on the sample
-    //// CSourceStream handles pushing the sample downstream and managing the stream thread.
-    //// We need to set the timestamps for this sample.
-    //// The base class's m_rtStreamTime tracks the current stream time.
-    //// We can use m_rtLastSampleTime to ensure monotonic timestamps.
-
-    //// Get the current stream time (relative to graph start)
-    //// CSourceStream::GetStreamTime(&m_rtLastSampleTime); // This gets the current time
-
-    //// Calculate the sample start and end times based on frame rate
-    //// The first sample starts at 0. Subsequent samples are spaced by m_rtFrameLength.
-    //CRefTime rtStart = m_rtLastSampleTime;
-    //CRefTime rtStop = rtStart + m_rtFrameLength;
-
-    //hr = pSample->SetTime(&rtStart, &rtStop);
-    //if (FAILED(hr))
-    //{
-    //    printf("FillBuffer: Failed to set sample time: 0x%lX\n", hr);
-    //    // This is a less critical error than failing to get data, but still an issue.
-    //    // The graph might still run, but timing will be off.
-    //}
-
-    //// Update the last sample time for the next frame
-    //m_rtLastSampleTime = rtStop;
-
-
-    //// If you need to set media type dynamically per sample (rare for sources), do it here:
-    //// pSample->SetMediaType(&m_mt); // m_mt is the negotiated connected media type
-
-    //// printf("FillBuffer: Sample filled and timed.\n");
-    //return S_OK; // Successfully filled the buffer
 }
 
 //////////////////////////////////////////////////////////////////////////
