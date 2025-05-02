@@ -277,20 +277,6 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
             *pData++ = intensity;
             *pData++ = intensity;
         }
-        //for (int y = 0; y < 480; y++)
-        //{
-        //    //int srcY = g_flipImage ? y : (479 - y); // Flip vertically if needed
-        //    int srcY = 479 - y; // Now the image is upright by default
-        //    for (int x = 0; x < 640; x++)
-        //    {
-        //        int srcX = flipImage ? (639 - x) : x;
-        //        int srcIndex = srcY * 640 + srcX;
-        //        BYTE intensity = static_cast<BYTE>((pSrc[srcIndex] >> 8));
-        //        pData[destPos++] = intensity; // Red
-        //        pData[destPos++] = intensity; // Green
-        //        pData[destPos++] = intensity; // Blue
-        //    }
-        //}
     }
     else
     {
