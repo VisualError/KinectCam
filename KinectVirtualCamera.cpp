@@ -129,7 +129,7 @@ HRESULT CKinectVirtualStream::GetMediaType(int iPosition, CMediaType* pmt)
     pmt->SetType(&MEDIATYPE_Video);
     pmt->SetFormatType(&FORMAT_VideoInfo);
     pmt->SetTemporalCompression(FALSE);
-    pmt->SetSubtype(&MEDIASUBTYPE_NV12);
+    pmt->SetSubtype(&MEDIASUBTYPE_RGB24);
     pmt->SetSampleSize(pvi->bmiHeader.biSizeImage);
     *pmt = m_mt;
     // Work out the GUID for the subtype from the header info.
