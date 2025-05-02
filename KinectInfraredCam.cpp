@@ -15,12 +15,15 @@ bool g_flipImage = false;
 //}
 
 
-//INuiSensor* KinectInfraredCam::m_pNuiSensor = nullptr;
-//HANDLE KinectInfraredCam::m_hNextVideoFrameEvent = INVALID_HANDLE_VALUE;
-//HANDLE KinectInfraredCam::m_pVideoStreamHandle = INVALID_HANDLE_VALUE;
-//long KinectInfraredCam::m_refCount = 0;
+INuiSensor* KinectInfraredCam::m_pNuiSensor = nullptr;
+HANDLE KinectInfraredCam::m_hNextVideoFrameEvent = INVALID_HANDLE_VALUE;
+HANDLE KinectInfraredCam::m_pVideoStreamHandle = INVALID_HANDLE_VALUE;
 
 HRESULT KinectInfraredCam::CreateFirstConnected() {
+    if (m_pNuiSensor != nullptr) {
+        // Already initialized
+        return S_OK;
+    }
     INuiSensor* pNuiSensor;
     HRESULT hr;
 
@@ -53,7 +56,7 @@ HRESULT KinectInfraredCam::CreateFirstConnected() {
         pNuiSensor->Release();
     }
 
-    if (NULL != m_pNuiSensor)
+    if (nullptr != m_pNuiSensor)
     {
         // Initialize the Kinect and specify that we'll be using color
         hr = m_pNuiSensor->NuiInitialize(NUI_INITIALIZE_FLAG_USES_COLOR);
@@ -73,7 +76,7 @@ HRESULT KinectInfraredCam::CreateFirstConnected() {
         }
     }
 
-    if (NULL == m_pNuiSensor || FAILED(hr))
+    if (nullptr == m_pNuiSensor || FAILED(hr))
     {
         return E_FAIL;
     }
