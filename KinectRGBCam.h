@@ -5,7 +5,7 @@
 #include <windows.h>
 #include "NuiApi.h"
 
-class KinectInfraredCam
+class KinectRGBCam
 {
 public:
     HRESULT CreateFirstConnected();
@@ -13,10 +13,10 @@ public:
     void Nui_UnInit();
     /*static void StaticUnInit();*/
 
-    KinectInfraredCam() = default;
-    ~KinectInfraredCam() = default;
-    KinectInfraredCam(const KinectInfraredCam&) = delete;
-    KinectInfraredCam& operator=(const KinectInfraredCam&) = delete;
+    KinectRGBCam() = default;
+    ~KinectRGBCam() = default;
+    KinectRGBCam(const KinectRGBCam&) = delete;
+    KinectRGBCam& operator=(const KinectRGBCam&) = delete;
 private:
     static INuiSensor* m_pNuiSensor;
     static HANDLE m_hNextVideoFrameEvent;

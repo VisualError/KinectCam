@@ -37,7 +37,7 @@ CKinectVirtualSource::~CKinectVirtualSource()
     /*DbgLog((LOG_TRACE, 3, TEXT("CKinectVirtualSource::~CKinectVirtualSource")));
     printf("CKinectVirtualSource::~CKinectVirtualSource()\n");*/
     if (m_kinected) {
-        m_kinectInfraredCam.Nui_UnInit();
+        m_kinectRGBCam.Nui_UnInit();
         m_kinected = false;
     }
     /*if (m_pBuffer) {
@@ -78,7 +78,7 @@ HRESULT CKinectVirtualStream::QueryInterface(REFIID riid, void** ppv)
 HRESULT CKinectVirtualStream::OnThreadCreate()
 {
     m_rtLastTime = 0;
-    HRESULT hr = m_pParent->m_kinectInfraredCam.CreateFirstConnected();
+    HRESULT hr = m_pParent->m_kinectRGBCam.CreateFirstConnected();
     m_pParent->m_kinected = SUCCEEDED(hr);
     return CSourceStream::OnThreadCreate();
 } // OnThreadCreate
@@ -86,7 +86,7 @@ HRESULT CKinectVirtualStream::OnThreadCreate()
 HRESULT CKinectVirtualStream::OnThreadDestroy()
 {
     if (m_pParent->m_kinected) {
-        m_pParent->m_kinectInfraredCam.Nui_UnInit();
+        m_pParent->m_kinectRGBCam.Nui_UnInit();
         m_pParent->m_kinected = false;
     }
     return CSourceStream::OnThreadDestroy();
@@ -267,24 +267,14 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
     lDataLen = pSample->GetSize();
     if (m_pParent->m_kinected)
     {
-        m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
-        int srcPos = 0;
-        int destPos = 0;
-        for (int y = 0; y < 480; y++)
-        {
-            for (int x = 0; x < 640; x++)
-            {
-                if (destPos < lDataLen - 3)
-                {
-                    /*if (g_flipImage)
-                        srcPos = (x * 4) + ((479 - y) * 640 * 4);
-                    else*/
-                    srcPos = ((639 - x) * 4) + ((479 - y) * 640 * 4);
-                    pData[destPos++] = m_pParent->m_pBuffer[srcPos];
-                    pData[destPos++] = m_pParent->m_pBuffer[srcPos + 1];
-                    pData[destPos++] = m_pParent->m_pBuffer[srcPos + 2];
-                }
-            }
+        m_pParent->m_kinectRGBCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
+        const BYTE* pSrc = m_pParent->m_pBuffer + (640 * 480 - 1) * 4;
+
+        for (int i = 0; i < 640 * 480; ++i) {
+            *pData++ = pSrc[0];
+            *pData++ = pSrc[1];
+            *pData++ = pSrc[2];
+            pSrc -= 4;
         }
     }
     else

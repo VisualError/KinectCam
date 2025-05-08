@@ -1,6 +1,6 @@
 #pragma once
 
-#include "KinectInfraredCam.h"
+#include "KinectRGBCam.h"
 
 #define DECLARE_PTR(type, ptr, expr) type* ptr = (type*)(expr);
 
@@ -14,7 +14,7 @@ public:
 
 	IFilterGraph* GetGraph() { return m_pGraph; }
 
-	KinectInfraredCam m_kinectInfraredCam;
+	KinectRGBCam m_kinectRGBCam;
 	bool m_kinected;
 	BYTE *m_pBuffer;
 	int m_pBufferSize;

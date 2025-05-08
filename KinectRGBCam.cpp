@@ -1,6 +1,6 @@
 ﻿#include <Shlobj.h>
 #include "util.h"
-#include "KinectInfraredCam.h"
+#include "KinectRGBCam.h"
 
 bool g_flipImage = false;
 
@@ -15,11 +15,11 @@ bool g_flipImage = false;
 //}
 
 
-INuiSensor* KinectInfraredCam::m_pNuiSensor = nullptr;
-HANDLE KinectInfraredCam::m_hNextVideoFrameEvent = INVALID_HANDLE_VALUE;
-HANDLE KinectInfraredCam::m_pVideoStreamHandle = INVALID_HANDLE_VALUE;
+INuiSensor* KinectRGBCam::m_pNuiSensor = nullptr;
+HANDLE KinectRGBCam::m_hNextVideoFrameEvent = INVALID_HANDLE_VALUE;
+HANDLE KinectRGBCam::m_pVideoStreamHandle = INVALID_HANDLE_VALUE;
 
-HRESULT KinectInfraredCam::CreateFirstConnected() {
+HRESULT KinectRGBCam::CreateFirstConnected() {
     if (m_pNuiSensor != nullptr) {
         // Already initialized
         return S_OK;
@@ -86,7 +86,7 @@ HRESULT KinectInfraredCam::CreateFirstConnected() {
 
 // TODO: fix bug where alt + f4 doesnt close camera
 // TODO: fix bug where setting elevation to 0 somehow fixes and causes a bug? (bug: ir camera doesnt get shut off, but it prevents weird shit from happening)
-void KinectInfraredCam::Nui_UnInit()
+void KinectRGBCam::Nui_UnInit()
 {
     if (m_pNuiSensor)
     {
@@ -103,7 +103,7 @@ void KinectInfraredCam::Nui_UnInit()
 }
 
 
-void KinectInfraredCam::Nui_GetCamFrame(BYTE* frameBuffer, int frameSize)
+void KinectRGBCam::Nui_GetCamFrame(BYTE* frameBuffer, int frameSize)
 {
     HRESULT hr;
     NUI_IMAGE_FRAME imageFrame;

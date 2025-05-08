@@ -12,12 +12,12 @@ find_package(Kinect 1.8 REQUIRED)
 find_package(DirectShow REQUIRED)
 
 set(KinectInfraredCam_HEADERS
-	KinectInfraredCam.h
+	"KinectRGBCam.h"
 	KinectVirtualCamera.h "util.h")
 
 set(KinectInfraredCam_SOURCES
-    KinectInfraredCam.cpp
-	KinectInfraredCam.def # Module definition for exports
+    "KinectRGBCam.cpp"
+	KinectRGBCam.def # Module definition for exports
 	KinectVirtualCamera.cpp
 	Dll.cpp)
 
