@@ -15,7 +15,7 @@ CKinectVirtualSource::CKinectVirtualSource(LPUNKNOWN pUnk, HRESULT* phr) :
     CSource(NAME("Kinect Cam"), pUnk, CLSID_VirtualCam) 
 {
 
-    m_pBufferSize = 640 * 480 * 2;
+    m_pBufferSize = 640 * 480 * 4;
     m_pBuffer = new BYTE[m_pBufferSize];
     m_kinected = false;
 
@@ -268,14 +268,23 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
     if (m_pParent->m_kinected)
     {
         m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
-        USHORT* pSrc = reinterpret_cast<USHORT*>(m_pParent->m_pBuffer);
-        const USHORT* pSrcEnd = pSrc + (640 * 480) - 1;
-
-        for (int i = 0; i < 640 * 480; ++i) {
-            BYTE intensity = static_cast<BYTE>((*(pSrcEnd - i)) >> 8);
-            *pData++ = intensity;
-            *pData++ = intensity;
-            *pData++ = intensity;
+        int srcPos = 0;
+        int destPos = 0;
+        for (int y = 0; y < 480; y++)
+        {
+            for (int x = 0; x < 640; x++)
+            {
+                if (destPos < lDataLen - 3)
+                {
+                    /*if (g_flipImage)
+                        srcPos = (x * 4) + ((479 - y) * 640 * 4);
+                    else*/
+                    srcPos = ((639 - x) * 4) + ((479 - y) * 640 * 4);
+                    pData[destPos++] = m_pParent->m_pBuffer[srcPos];
+                    pData[destPos++] = m_pParent->m_pBuffer[srcPos + 1];
+                    pData[destPos++] = m_pParent->m_pBuffer[srcPos + 2];
+                }
+            }
         }
     }
     else
@@ -378,8 +387,8 @@ HRESULT STDMETHODCALLTYPE CKinectVirtualStream::GetStreamCaps(int iIndex, AM_MED
     pvscc->ShrinkTapsY = 0;
     pvscc->MinFrameInterval = 333333;
     pvscc->MaxFrameInterval = 333333;
-    pvscc->MinBitsPerSecond = 640 * 480 * 16 * 30;
-    pvscc->MaxBitsPerSecond = 640 * 480 * 16 * 30;
+    pvscc->MinBitsPerSecond = 640 * 480 * 24 * 30;
+    pvscc->MaxBitsPerSecond = 640 * 480 * 24 * 30;
 
     return S_OK;
     //*pmt = CreateMediaType(&m_mt);

@@ -67,7 +67,7 @@ HRESULT KinectInfraredCam::CreateFirstConnected() {
             m_pNuiSensor->NuiCameraElevationSetAngle(20);
             // Open a color image stream to receive color frames
             hr = m_pNuiSensor->NuiImageStreamOpen(
-                NUI_IMAGE_TYPE_COLOR_INFRARED,
+                NUI_IMAGE_TYPE_COLOR,
                 NUI_IMAGE_RESOLUTION_640x480,
                 0,
                 2,
