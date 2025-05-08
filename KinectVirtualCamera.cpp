@@ -209,24 +209,21 @@ HRESULT CKinectVirtualStream::FillBuffer(IMediaSample* pSample)
         m_pParent->m_kinectInfraredCam.Nui_GetCamFrame(m_pParent->m_pBuffer, m_pParent->m_pBufferSize);
         USHORT* pSrc = reinterpret_cast<USHORT*>(m_pParent->m_pBuffer);
 
-        // Fill Y Plane (640x480)
-        BYTE* yPlane = pData;
         BYTE* uvPlane = pData + (640 * 480);
-        const USHORT* pSrcEnd = pSrc + (640 * 480);
-        BYTE* pY = yPlane;
+        const int totalPixels = 640 * 480;
+        USHORT* pRowEnd = pSrc + 639;
+        USHORT* pRowStart = pSrc;
 
-        while (pSrc < pSrcEnd)
+        for (int i = 0; i < totalPixels; ++i)
         {
-            // Process one full row at a time (X flipped)
-            const USHORT* pRowStart = pSrc + 639; // Start from last pixel of row
-            const USHORT* pRowEnd = pSrc;         // End at first pixel
+            *pData++ = static_cast<BYTE>(*pRowEnd >> 8);
 
-            while (pRowStart >= pRowEnd)
+            // Branch every 640 pixels (well-predicted)
+            if (--pRowEnd < pRowStart)
             {
-                *pY++ = static_cast<BYTE>((*pRowStart-- >> 8));
+                pRowStart += 640;
+                pRowEnd = pRowStart + 639;
             }
-
-            pSrc += 640; // Advance to next row
         }
 
         memset(uvPlane, 128, 640 * 480 / 2);
