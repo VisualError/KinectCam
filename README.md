@@ -1,4 +1,4 @@
-# Kinect 360 Virtual Camera.
+# Kinect 360 Virtual Camera. ![GitHub Releases (by Release)](https://img.shields.io/github/downloads/VisualError/KinectCam/total?logo=github) ![GitHub Releases (by Release)](http://img.shields.io/github/release/VisualError/KinectCam.svg)
 This little project is a revival of the Original [KinectCam](https://github.com/wildbillcat/KinectCam) which is a fork of [VCam](https://github.com/roman380/tmhare.mvps.org-vcam) that is archived by roman380.
 
 *⚠️ This is just a personal project to make use of the Kinect v1 as a Camera and a tracking solution for my own needs, and has been made public incase other people would like to to use it.*
